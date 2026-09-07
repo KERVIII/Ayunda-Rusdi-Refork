@@ -1,55 +1,38 @@
-Ayunda Rusdi Color Enhancer v6.5
+# Ayunda Rusdi Color Enhancer v6.5
 
-A major refinement focused on better usability, smoother interaction, and a more polished overall experience.
+WebUI and system tweak update focused on navigation, preview controls, and Android WebView compatibility.
 
-v6.5 brings a refreshed WebUI alongside additional system-level tweaks designed to make everyday interaction feel faster and more consistent.
+## Changes
 
-What’s new:
+- Added floating liquid-glass navigation
+- Added swipeable tab navigation
+- Added interactive Before/After color preview
+- Added saturation-linked preview
+- Added multiple preview scenes
+- Improved navigation animations and touch feedback
+- Updated About section
+- Added Module Manager banner integration
+- Improved responsive layout
+- Improved Android WebView compatibility
+- Reduced unnecessary background activity
+- Added system responsiveness tweaks
+- Added smoother system transition handling
 
-• Floating liquid-glass navigation
-• Swipeable navigation for faster tab switching
-• Smoother navigation transitions and active-state animations
-• Improved glass depth, spacing, proportions, and touch feedback
-• Interactive Before/After color preview
-• Saturation-linked visual preview
-• Multiple visual scenes for preview testing
-• Updated About section with project information and updates
-• Module manager banner integration
-• Improved responsive behavior across different screen sizes
-• Better Android WebView compatibility
-• Additional system responsiveness refinements
-• Reduced unnecessary background activity
-• Smoother system transitions
-• More consistent interaction behavior
+## Zetamin 2 Integration
 
-Zetamin 2 Integration
+- Integrated Zetamin 2
+- Added additional system tweaks alongside the Zetamin 2 configuration
+- Retained the existing Zetamin 2 performance tweaks
+- Added additional responsiveness and background activity adjustments
 
-This release also combines Zetamin 2 with my own additional tweaks.
+## Preview
 
-The goal is to keep the main performance improvements from Zetamin 2 while adding another layer of system-level refinement.
+The WebUI color preview operates independently from the backend configuration. Preview changes do not apply system commands or modify the active color enhancement settings.
 
-My additional tweaks focus on smaller areas of the system:
+## Credits
 
-• Improved responsiveness
-• Reduced unnecessary background activity
-• Smoother system transitions
-• More consistent system interactions
-• Fine-tuned behavior in areas where the default configuration could feel less responsive
+Original project by **Kanagawa Yamada**
 
-These additions work alongside Zetamin 2 rather than replacing its main tweaks.
+Fork and continued development by **KERVIII**
 
-The idea is simple. Keep the performance-focused foundation from Zetamin 2 while adding extra polish for a smoother, faster, and more consistent experience.
-
-The WebUI preview also stays completely separate from the backend. Changing the preview does not send additional system commands or modify the actual color enhancement configuration.
-
-Credits
-
-Original developer:
-Kanagawa Yamada
-
-This project is based on the original Ayunda Rusdi Color Enhancer work by Kanagawa Yamada.
-
-Fork and continued development:
-KERVIII
-
-v6.5 represents my continued work on the project, with a focus on improving both the interface and the overall user experience while keeping the core functionality stable.
+Based
