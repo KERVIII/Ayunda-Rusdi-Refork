@@ -1,0 +1,438 @@
+/* ════════════════════════════════════════════════════════════════════════
+   AYUNDA RUSDI — Color Enhancer WebUI
+   Visual system ported from the supplied Huashu reference: pure-black
+   canvas, paper elevated cards, numbered section index, horizontal bar
+   telemetry, grotesque display type. Recolored to the established Risu
+   rose accent instead of Huashu's terracotta so this reads as its own
+   product, not a reskin. No Google Fonts / CDN - offline system stacks
+   only, per the offline requirement.
+   ════════════════════════════════════════════════════════════════════════ */
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { background: var(--canvas); overscroll-behavior: none; }
+
+:root {
+  /* canvas */
+  --canvas: #0a0a09;
+  --surface: #131210;
+  --surface-2: #1a1815;
+  --surface-3: #201e1a;
+  --hair: rgba(255,255,255,.09);
+  --hair-2: rgba(255,255,255,.15);
+
+  /* paper (elevated light surfaces) */
+  --paper: #efe6df;
+  --paper-2: #e2d5c8;
+  --paper-ink: #1c1310;
+  --paper-hair: rgba(20,16,10,.14);
+
+  /* accent - established Risu rose */
+  --accent: #ff5d8f;
+  --accent-2: #d43d70;
+  --accent-deep: #a82c56;
+  --accent-soft: rgba(255,93,143,.15);
+  --accent-soft-2: rgba(255,93,143,.32);
+
+  /* text on black */
+  --text: #f5f1ec;
+  --text-dim: rgba(245,241,236,.52);
+  --text-faint: rgba(245,241,236,.26);
+
+  /* status (functional, not brand) */
+  --green: #7fb56c;
+  --green-soft: rgba(127,181,108,.16);
+  --red: #d3554a;
+  --red-soft: rgba(211,85,74,.16);
+
+  /* offline system stacks - no network font dependency */
+  --display: -apple-system, "Segoe UI", Roboto, system-ui, sans-serif;
+  --body-f: -apple-system, "Segoe UI", Roboto, system-ui, sans-serif;
+  --mono: ui-monospace, "SF Mono", "Roboto Mono", "JetBrains Mono", Menlo, monospace;
+
+  --nav-h: 104px;
+  --r-sm: 3px;
+  --r-md: 6px;
+  --r-lg: 12px;
+}
+
+body {
+  font-family: var(--body-f);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+  min-height: 100dvh; /* real mobile browsers resize the visible viewport as
+                          the URL bar shows/hides; 100vh alone can size the
+                          page against a taller viewport than is actually
+                          visible, throwing off where fixed elements land
+                          relative to content. 100dvh tracks the real one. */
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+  width: 100%;
+  background-image:
+    linear-gradient(rgba(255,255,255,.022) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.022) 1px, transparent 1px);
+  background-size: 26px 26px;
+  background-attachment: fixed;
+}
+
+#app { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; position: relative; }
+
+/* ── tab plumbing ─────────────────────────────────────────────────────── */
+.tab-content { display: none; flex: 1; overflow-y: auto; overflow-x: hidden; padding: 10px 18px calc(var(--nav-h) + 22px); }
+.tab-content.active { display: block; }
+.tab-content::-webkit-scrollbar { display: none; }
+
+/* ── page header ──────────────────────────────────────────────────────── */
+.page-head { padding: 10px 0 18px; position: relative; }
+.page-eyebrow { font-family: var(--mono); font-size: 10.5px; letter-spacing: .16em; color: var(--accent); text-transform: uppercase; font-weight: 700; }
+.page-title { font-family: var(--display); font-size: 28px; font-weight: 800; letter-spacing: -0.01em; line-height: 1.05; margin-top: 4px; }
+
+/* ── status pill (top-right of home header) ──────────────────────────── */
+.status-pill {
+  position: absolute; top: 8px; right: 0; display: flex; align-items: center; gap: 6px;
+  border: 1px solid var(--hair); border-radius: 20px; background: var(--surface);
+  padding: 6px 11px; cursor: pointer; font-family: var(--mono); font-size: 10.5px; font-weight: 700;
+  color: var(--text-dim); letter-spacing: .04em;
+}
+.status-pill:active { background: var(--surface-2); }
+.dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-faint); flex-shrink: 0; }
+.dot.on { background: var(--green); box-shadow: 0 0 0 3px var(--green-soft); }
+.dot.off { background: var(--text-faint); }
+.dot.error { background: var(--red); box-shadow: 0 0 0 3px var(--red-soft); }
+
+/* ── numbered section header (Huashu "01 / 02 / 03" pattern) ────────────── */
+.sec { display: flex; align-items: baseline; gap: 10px; margin: 24px 0 12px; }
+.sec:first-of-type { margin-top: 4px; }
+.sec .n { font-family: var(--mono); font-weight: 800; font-size: 13px; color: var(--accent); flex-shrink: 0; }
+.sec .t { font-family: var(--display); font-weight: 800; font-size: 13px; letter-spacing: .1em; text-transform: uppercase; }
+.sec .rule { flex: 1; height: 1px; background: var(--hair); margin-left: 4px; }
+.sec .badge { font-family: var(--mono); font-size: 10px; font-weight: 800; color: var(--text-faint); }
+
+/* ── hero identity card ───────────────────────────────────────────────── */
+.hero { border: 1px solid var(--hair); border-radius: var(--r-md); padding: 18px 18px 16px; background: var(--surface); position: relative; overflow: hidden; }
+.hero-tag { position: absolute; top: 14px; right: 14px; font-family: var(--mono); font-size: 10px; font-weight: 800; letter-spacing: .12em; color: var(--canvas); background: var(--accent); padding: 3px 8px; border-radius: 2px; }
+.hero-word { font-family: var(--display); font-size: 25px; font-weight: 800; letter-spacing: -.01em; padding-right: 70px; }
+.hero-meta { margin-top: 8px; font-size: 12.5px; color: var(--text-dim); line-height: 1.5; }
+.hero-row { display: flex; align-items: center; gap: 7px; margin-top: 13px; padding-top: 13px; border-top: 1px solid var(--hair); font-size: 11.5px; color: var(--text-dim); }
+.hero-row b { color: var(--text); font-weight: 700; }
+
+/* ── stat cards row ───────────────────────────────────────────────────── */
+.stat-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.stat-card { background: var(--paper); color: var(--paper-ink); border-radius: var(--r-md); padding: 13px 14px; }
+.stat-card .lbl { font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; opacity: .55; }
+.stat-card .val { font-family: var(--display); font-weight: 800; font-size: 20px; margin-top: 5px; letter-spacing: -.01em; }
+
+/* ── horizontal telemetry bar (Huashu bar pattern, used for saturation) ── */
+.bar-card { border: 1px solid var(--hair); border-radius: var(--r-md); background: var(--surface); padding: 14px 16px 12px; }
+.bar-row-head { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; margin-bottom: 7px; }
+.bar-row-head .k { color: var(--text-dim); font-weight: 600; }
+.bar-row-head .v { font-family: var(--mono); font-weight: 700; color: var(--text); font-size: 12.5px; }
+.bar-track { height: 9px; background: var(--surface-3); border-radius: 1px; overflow: hidden; }
+.bar-fill { height: 100%; background: var(--accent); width: 0%; transition: width .4s cubic-bezier(.22,1,.36,1); border-radius: 1px; }
+
+/* ── quick action chips ───────────────────────────────────────────────── */
+.qa-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; }
+.qa-btn { border: 1px solid var(--hair); border-radius: var(--r-md); background: var(--surface); padding: 12px 6px 10px; text-align: center; font-size: 11px; font-weight: 700; color: var(--text-dim); line-height: 1.3; cursor: pointer; transition: background-color .12s ease, transform .1s ease; }
+.qa-btn .qa-n { display: block; font-family: var(--mono); font-size: 10px; color: var(--accent); font-weight: 800; margin-bottom: 4px; }
+.qa-btn:active { background: var(--surface-2); transform: scale(.97); }
+.qa-btn:disabled { opacity: .4; pointer-events: none; }
+.qa-btn.danger .qa-n { color: var(--red); }
+
+/* ── Before/After color preview (frontend-only visual demo; no backend
+      calls - see app.js "PREVIEW" section) ────────────────────────────── */
+.preview-card { border: 1px solid var(--hair); border-radius: var(--r-md); background: var(--surface); padding: 14px; }
+.preview-scene-row { display: flex; gap: 8px; margin-bottom: 10px; }
+.preview-scene-btn {
+  flex: 1; background: var(--surface-2); border: 1px solid var(--hair); color: var(--text-dim);
+  font-size: 11px; font-weight: 700; padding: 7px; border-radius: var(--r-sm); cursor: pointer;
+  transition: background-color .15s ease, color .15s ease, border-color .15s ease;
+}
+.preview-scene-btn.active { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+.preview-scene-btn:active { transform: scale(.97); }
+
+.preview-compare {
+  position: relative; width: 100%; aspect-ratio: 1368 / 768; border-radius: var(--r-sm);
+  overflow: hidden; user-select: none; touch-action: pan-y; cursor: ew-resize;
+  background: var(--surface-3);
+}
+.preview-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }
+.preview-after-wrap {
+  position: absolute; inset: 0; overflow: hidden;
+  clip-path: inset(0 calc(100% - var(--preview-pos, 50%)) 0 0);
+}
+.preview-after-wrap .preview-img { filter: saturate(var(--preview-sat, 1)); }
+.preview-divider {
+  position: absolute; top: 0; bottom: 0; left: var(--preview-pos, 50%);
+  width: 2px; background: rgba(255,255,255,.85); transform: translateX(-1px);
+  box-shadow: 0 0 6px rgba(0,0,0,.4);
+}
+.preview-handle {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+  width: 30px; height: 30px; border-radius: 50%; background: var(--paper); color: var(--paper-ink);
+  display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700;
+  box-shadow: 0 3px 8px rgba(0,0,0,.4);
+}
+.preview-tag {
+  position: absolute; top: 8px; font-family: var(--mono); font-size: 9.5px; font-weight: 800;
+  letter-spacing: .06em; text-transform: uppercase; color: #fff; background: rgba(0,0,0,.55);
+  padding: 3px 8px; border-radius: 20px; pointer-events: none;
+}
+.preview-tag-before { left: 8px; }
+.preview-tag-after { right: 8px; }
+.preview-caption { font-size: 11px; color: var(--text-dim); margin-top: 10px; line-height: 1.5; }
+.preview-caption span { color: var(--accent); font-weight: 700; font-family: var(--mono); }
+.preview-disclaimer { font-size: 10px; color: var(--text-faint); margin-top: 6px; line-height: 1.5; font-style: italic; }
+
+/* ── paper card grid (Risu presets) ──────────────────────────────────── */
+.grid-2 { display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: 10px; }
+.pcard { background: var(--paper); color: var(--paper-ink); border-radius: var(--r-md); overflow: hidden; border: 2px solid transparent; cursor: pointer; font: inherit; text-align: left; transition: transform .1s ease, border-color .12s ease; }
+.pcard:active { transform: scale(.97); }
+.pcard.active { border-color: var(--paper-ink); }
+.pcard-head { background: var(--accent-2); color: #fff; font-family: var(--mono); font-weight: 800; font-size: 11px; padding: 6px 10px; display: flex; justify-content: space-between; align-items: center; letter-spacing: .04em; }
+.pcard-head .ck { display: none; }
+.pcard.active .pcard-head .ck { display: inline; }
+.pcard-body { padding: 11px 12px 13px; }
+.pcard-name { font-family: var(--display); font-weight: 800; font-size: 14.5px; }
+.pcard-desc { font-size: 10.5px; opacity: .62; margin-top: 3px; line-height: 1.35; }
+.pcard:disabled { opacity: .55; pointer-events: none; }
+
+/* ── slider card (Risu Custom) ───────────────────────────────────────── */
+.slider-card { border: 1px solid var(--hair); border-radius: var(--r-md); background: var(--surface); padding: 16px; }
+.slider-card .head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.slider-card .name { font-size: 12.5px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: .06em; }
+.slider-card .readout { font-family: var(--mono); font-size: 15px; font-weight: 800; color: var(--accent); background: var(--accent-soft); padding: 3px 11px; border-radius: 20px; }
+input[type=range] { width: 100%; accent-color: var(--accent); height: 4px; margin: 6px 0; }
+.slider-labels { display: flex; justify-content: space-between; font-size: 10.5px; color: var(--text-faint); font-family: var(--mono); margin-top: 4px; }
+.slider-actions { display: flex; gap: 10px; margin-top: 16px; }
+
+/* ── shared buttons ───────────────────────────────────────────────────── */
+.cm-btn-ghost { flex: 1; background: var(--surface); border: 1px solid var(--hair); color: var(--text); border-radius: var(--r-md); padding: 12px; font-family: var(--body-f); font-weight: 700; font-size: 12.5px; cursor: pointer; transition: background-color .12s ease, transform .1s ease; }
+.cm-btn-ghost:active { transform: scale(.97); background: var(--surface-2); }
+.cm-btn-solid { flex: 1; background: var(--accent); color: #1a0410; border: none; border-radius: var(--r-md); padding: 12px; font-family: var(--body-f); font-weight: 700; font-size: 12.5px; cursor: pointer; transition: transform .1s ease, opacity .12s ease; }
+.cm-btn-solid:active { transform: scale(.97); }
+button:disabled { opacity: .45; cursor: not-allowed; pointer-events: none; }
+
+.danger-btn { width: 100%; margin-top: 14px; padding: 13px; border-radius: var(--r-md); background: var(--red-soft); border: 1px solid rgba(211,85,74,.4); color: var(--red); font-family: var(--mono); font-weight: 800; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; cursor: pointer; text-align: center; transition: transform .1s ease; }
+.danger-btn:active { transform: scale(.97); }
+
+/* ── status/diagnostics rows ──────────────────────────────────────────── */
+.status-card { border: 1px solid var(--hair); border-radius: var(--r-md); background: var(--surface); overflow: hidden; }
+.status-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 14px; border-bottom: 1px solid var(--hair); font-size: 12.5px; }
+.status-row:last-child { border-bottom: none; }
+.status-row .k { color: var(--text-dim); font-weight: 600; }
+.status-row .v { font-family: var(--mono); font-weight: 700; color: var(--text); text-align: right; }
+
+/* ── error card (persistent, not a toast - errors must stay visible) ────── */
+.error-card { border: 1px solid rgba(211,85,74,.4); border-radius: var(--r-md); background: var(--red-soft); padding: 13px 14px; margin-bottom: 16px; }
+.error-card .msg { font-size: 12.5px; color: #ffb3ac; line-height: 1.45; }
+.error-card .row { display: flex; gap: 8px; margin-top: 10px; }
+.error-card .row button { flex: 1; padding: 8px; border-radius: var(--r-sm); font-family: var(--body-f); font-weight: 700; font-size: 11.5px; cursor: pointer; border: 1px solid rgba(211,85,74,.4); background: transparent; color: var(--red); }
+.error-card .row button:active { background: rgba(211,85,74,.15); }
+.hidden { display: none !important; }
+
+.footnote { text-align: center; font-family: var(--mono); font-size: 10.5px; color: var(--text-faint); line-height: 1.8; padding: 20px 0 6px; }
+
+/* ── about page (reuses existing card language - no new visual system) ── */
+.about-card { border: 1px solid var(--hair); border-radius: var(--r-md); background: var(--surface); padding: 14px 16px; margin-bottom: 12px; }
+.about-card p { font-size: 12.5px; color: var(--text-dim); line-height: 1.55; }
+.about-card p + p { margin-top: 10px; }
+.about-k { font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--text-faint); }
+.about-link { color: var(--accent); text-decoration: none; font-weight: 700; }
+.about-link:active { opacity: .7; }
+
+/* ── bottom nav ───────────────────────────────────────────────────────── */
+/* ── Floating "bump" navigation, structurally redesigned ──────────────────
+   Previous passes used a translucent glass lens (Kowsu-referenced) that
+   repeatedly rendered as an ill-defined blob on real devices despite
+   multiple attempts at fixing the blur/glow stacking. This pass replaces
+   the whole active-indicator treatment with a SOLID, physical raised
+   circular knob (referenced from a "Liquid Navigation" demo: a dark pill
+   bar where the active item's icon sits inside a light circle that pops
+   above the bar's top edge) - inherently more robust in WebView since
+   there's no blur-edge-bleed failure mode to begin with. Geometry is
+   exposed as CSS custom properties per the brief, so it's easy to retune
+   without hunting through magic numbers.
+   ────────────────────────────────────────────────────────────────────── */
+:root {
+  --nav-height: 60px;
+  --nav-radius: 999px;
+  --nav-item-size: 58px;
+  --nav-item-height: 52px;
+  --nav-gap: 0px;
+  --nav-padding: 4px;
+  --nav-knob-size: 50px;
+  --nav-knob-lift: 17px; /* how far the knob pokes above the bar's top edge */
+}
+
+#bottom-nav-wrap {
+  position: fixed; left: 50%;
+  bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  z-index: 50;
+  animation: knavIn .32s cubic-bezier(.16,1,.3,1) both;
+}
+@keyframes knavIn { from { opacity: 0; transform: translateX(-50%) translateY(10px) scale(.96); } to { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); } }
+
+#bottom-nav {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: var(--nav-height);
+  padding: var(--nav-padding);
+  border-radius: var(--nav-radius);
+  border: 1px solid rgba(255,255,255,.10);
+  /* Solid, physical surface - deliberately NOT a glass/blur treatment.
+     Avoiding backdrop-filter here entirely sidesteps the whole class of
+     "edgeless glow" rendering risk the earlier lens design kept hitting. */
+  background: #121110;
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.06) inset,
+    0 14px 24px rgba(0,0,0,.4);
+  overflow: visible; /* the knob must be allowed to visually rise above the bar */
+  touch-action: pan-y;
+}
+
+.knav-items { position: relative; display: flex; gap: var(--nav-gap); z-index: 2; }
+.knav-item {
+  width: var(--nav-item-size); height: var(--nav-item-height);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+  background: none; border: none; font: inherit; cursor: pointer;
+  color: var(--text-dim);
+  transition: color .18s ease, transform .1s ease;
+}
+.knav-item svg {
+  width: 19px; height: 19px;
+  transition: opacity .18s ease;
+  opacity: .82;
+}
+.knav-item span { font-size: 9px; font-weight: 700; letter-spacing: .01em; opacity: .82; transition: opacity .18s ease; }
+.knav-item.active { color: var(--text); }
+/* The active item's own icon fades out - its "real" visual position is
+   now inside the knob (see .knav-knob-icon below). Trying to align the
+   original in-flow icon with the separately-positioned absolute knob via
+   a guessed transform offset was fragile and rendered the icon outside
+   the knob's bounds entirely; cloning it into the knob is unambiguous. */
+.knav-item.active svg { opacity: 0; }
+.knav-item.active span { opacity: 1; }
+.knav-item:active { transform: scale(.93); }
+
+/* the single shared moving knob - one physical element, translated with
+   transform only (never left/width), so the bar itself never reflows and
+   rapid navigation/swipe can't leave more than one "active" indicator
+   visible. Solid fill, hard edge, real drop shadow for depth - no blur
+   bleed possible because there is no blur involved at all. */
+.knav-knob {
+  position: absolute;
+  top: calc(-1 * var(--nav-knob-lift));
+  left: calc((var(--nav-item-size) - var(--nav-knob-size)) / 2);
+  width: var(--nav-knob-size);
+  height: var(--nav-knob-size);
+  border-radius: 50%;
+  background: var(--paper);
+  box-shadow: 0 6px 14px rgba(0,0,0,.42), 0 2px 5px rgba(0,0,0,.3);
+  transform: translate3d(calc(var(--knav-idx, 0) * var(--nav-item-size)), 0, 0);
+  transition: transform .3s cubic-bezier(.16,1,.3,1);
+  z-index: 1;
+  pointer-events: none;
+}
+.knav-knob-icon {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  pointer-events: none;
+}
+.knav-knob-icon svg { width: 20px; height: 20px; color: var(--paper-ink); }
+@media (prefers-reduced-motion: reduce) {
+  .knav-knob { transition: none; }
+  .knav-item svg { transition: none; }
+  #bottom-nav-wrap { animation: none; }
+}
+
+/* ── confirm dialog (Reset only - the one genuinely destructive action) ── */
+#confirm-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 200; display: none; align-items: center; justify-content: center; padding: 24px; }
+#confirm-overlay.show { display: flex; }
+.confirm-sheet { background: var(--paper); color: var(--paper-ink); border-radius: var(--r-md); padding: 20px; width: 100%; max-width: 320px; }
+.confirm-sheet h3 { font-family: var(--display); font-size: 16px; font-weight: 800; margin-bottom: 8px; }
+.confirm-sheet p { font-size: 12.5px; opacity: .7; line-height: 1.5; margin-bottom: 16px; }
+.confirm-actions { display: flex; gap: 8px; }
+.confirm-actions button { flex: 1; padding: 11px; border-radius: var(--r-sm); font-weight: 700; font-size: 12.5px; border: none; cursor: pointer; font-family: var(--body-f); }
+.btn-ghost { background: transparent; border: 1px solid var(--paper-hair) !important; color: var(--paper-ink); }
+.btn-solid { background: var(--accent-2); color: #fff; }
+
+/* ── toast (success feedback only - errors use .error-card, which must
+      stay visible rather than auto-dismiss) ───────────────────────────── */
+#toast { position: fixed; bottom: calc(var(--nav-h) + 14px); left: 50%; transform: translateX(-50%) translateY(20px); background: var(--paper); color: var(--paper-ink); font-size: 12.5px; font-weight: 700; padding: 10px 18px; border-radius: 20px; opacity: 0; transition: opacity .2s, transform .2s; z-index: 300; pointer-events: none; max-width: 85vw; text-align: center; }
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ── Ghost loader ─────────────────────────────────────────────────────────
+   Original CSS in the spirit of BlackisPlay's MIT-licensed "Pac-Man Ghost
+   Loader" (uiverse.io/BlackisPlay/sweet-frog-67): red body, up/down float,
+   white eyes with moving blue pupils, animated shadow. Created once in the
+   DOM; shown/hidden purely via the .visible class, never recreated. Shown
+   only while genuinely waiting on real app initialization (see app.js) -
+   never a fixed decorative delay. ────────────────────────────────────── */
+.ghost-wrap {
+  display: none;
+  position: fixed; inset: 0;
+  align-items: center; justify-content: center;
+  background: rgba(10,9,8,.88);
+  z-index: 60;
+  pointer-events: none;
+}
+.ghost-wrap.visible { display: flex; }
+
+.ghost { position: relative; width: 72px; height: 86px; animation: ghostFloat 1s ease-in-out infinite; }
+.ghost-body {
+  position: absolute; top: 0; left: 0; width: 72px; height: 66px;
+  background: #e0453f;
+  border-radius: 50% 50% 0 0;
+  clip-path: polygon(
+    0% 42%, 0% 100%,
+    11% 84%, 22% 100%,
+    33% 84%, 44% 100%,
+    50% 88%, 56% 100%,
+    67% 84%, 78% 100%,
+    89% 84%, 100% 100%,
+    100% 42%, 50% 0%
+  );
+  animation: ghostFlicker 2.6s steps(1, end) infinite;
+}
+.ghost-eye {
+  position: absolute; top: 34%; width: 16px; height: 20px;
+  background: #f5f1ec; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+}
+.ghost-eye-l { left: 15px; }
+.ghost-eye-r { right: 15px; }
+.ghost-pupil { width: 8px; height: 8px; border-radius: 50%; background: #3a6fe0; animation: ghostPupil 1.8s ease-in-out infinite; }
+.ghost-shadow {
+  position: absolute; bottom: 4px; left: 50%; width: 44px; height: 9px;
+  background: rgba(0,0,0,.4); border-radius: 50%;
+  transform: translateX(-50%);
+  animation: ghostShadow 1s ease-in-out infinite;
+}
+
+@keyframes ghostFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+@keyframes ghostShadow { 0%, 100% { transform: translateX(-50%) scale(1); opacity: .4; } 50% { transform: translateX(-50%) scale(.72); opacity: .22; } }
+@keyframes ghostPupil {
+  0%, 100% { transform: translate(0, 0); }
+  25% { transform: translate(2px, -1px); }
+  50% { transform: translate(0, 2px); }
+  75% { transform: translate(-2px, -1px); }
+}
+@keyframes ghostFlicker { 0%, 91%, 100% { opacity: 1; } 92%, 95% { opacity: .82; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .ghost, .ghost-body, .ghost-pupil, .ghost-shadow { animation: none !important; transform: none !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; scroll-behavior: auto !important; }
+}
+
+/* ── small-width safety ───────────────────────────────────────────────── */
+@media (max-width: 359px) {
+  .tab-content { padding-left: 14px; padding-right: 14px; }
+  .page-title { font-size: 24px; }
+  .hero-word { font-size: 21px; padding-right: 60px; }
+  .qa-btn { font-size: 10px; padding: 10px 4px 8px; }
+}

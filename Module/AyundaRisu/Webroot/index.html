@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Ayunda Rusdi Color Enhancer</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- ════════════════ HOME ════════════════ -->
+  <div class="tab-content active" id="tab-home">
+    <div class="page-head">
+      <div class="page-eyebrow">Color Enhancer</div>
+      <div class="page-title">Ayunda Rusdi</div>
+      <button class="status-pill" id="statusPill" type="button" aria-label="Go to Status">
+        <span class="dot" id="statusDot"></span>
+        <span id="statusPillText">-</span>
+      </button>
+    </div>
+
+    <div id="homeErrorSlot"></div>
+
+    <div class="hero">
+      <div class="hero-tag">RISU</div>
+      <div class="hero-word" id="heroPresetName">-</div>
+      <div class="hero-meta" id="heroPresetDesc">-</div>
+      <div class="hero-row">
+        <span class="dot" id="heroDot"></span>
+        <span>Module is <b id="heroStateWord">-</b></span>
+      </div>
+    </div>
+
+    <div class="sec"><span class="n">01</span><span class="t">Overview</span><span class="rule"></span></div>
+    <div class="stat-row">
+      <div class="stat-card">
+        <div class="lbl">Saturation</div>
+        <div class="val" id="statSatQuick">-</div>
+      </div>
+      <div class="stat-card">
+        <div class="lbl">State</div>
+        <div class="val" id="statStateQuick">-</div>
+      </div>
+    </div>
+
+    <div class="sec"><span class="n">02</span><span class="t">Saturation Level</span><span class="rule"></span></div>
+    <div class="bar-card">
+      <div class="bar-row-head">
+        <span class="k">SurfaceFlinger 1022</span>
+        <span class="v" id="homeMeterValue">-</span>
+      </div>
+      <div class="bar-track"><div class="bar-fill" id="homeMeterFill"></div></div>
+    </div>
+
+    <div class="sec"><span class="n">03</span><span class="t">Quick Actions</span><span class="rule"></span></div>
+    <div class="qa-row">
+      <button class="qa-btn" id="qaNative" type="button"><span class="qa-n">01</span>Native</button>
+      <button class="qa-btn" id="qaOff" type="button"><span class="qa-n">02</span>Disable</button>
+      <button class="qa-btn danger" id="qaReset" type="button"><span class="qa-n">03</span>Reset</button>
+    </div>
+
+    <div class="sec"><span class="n">04</span><span class="t">Color Preview</span><span class="rule"></span></div>
+    <div class="preview-card">
+      <div class="preview-scene-row">
+        <button class="preview-scene-btn active" id="sceneBtn0" type="button">Scene 1</button>
+        <button class="preview-scene-btn" id="sceneBtn1" type="button">Scene 2</button>
+      </div>
+      <div class="preview-compare" id="previewCompare">
+        <img id="previewImgBefore" class="preview-img" alt="Before">
+        <div class="preview-after-wrap" id="previewAfterWrap">
+          <img id="previewImgAfter" class="preview-img" alt="After">
+        </div>
+        <div class="preview-divider" id="previewDivider"><span class="preview-handle">&#8596;</span></div>
+        <span class="preview-tag preview-tag-before">Before</span>
+        <span class="preview-tag preview-tag-after">After</span>
+      </div>
+      <p class="preview-caption">After reflects <span id="previewSatLabel">1.05</span> saturation - the same value shown on Status.</p>
+      <p class="preview-disclaimer">Visual preview only. Actual display output depends on your device, panel, ROM, and display pipeline.</p>
+    </div>
+
+    <div class="footnote">Presets are saturation-tuned approximations. The verified backend controls one parameter: saturation.</div>
+  </div>
+
+  <!-- ════════════════ PRESETS ════════════════ -->
+  <div class="tab-content" id="tab-presets">
+    <div class="page-head">
+      <div class="page-eyebrow" id="presetsCount">15 Profiles</div>
+      <div class="page-title">Risu Presets</div>
+    </div>
+
+    <div id="presetsErrorSlot"></div>
+
+    <div class="sec"><span class="n">01</span><span class="t">Choose A Preset</span><span class="rule"></span></div>
+    <div class="grid-2" id="presetGrid"></div>
+
+    <div class="footnote">Names describe the visual target, not independent hardware control. See Status for the full explanation.</div>
+  </div>
+
+  <!-- ════════════════ CUSTOM ════════════════ -->
+  <div class="tab-content" id="tab-custom">
+    <div class="page-head">
+      <div class="page-eyebrow">Manual Tuning</div>
+      <div class="page-title">Risu Custom</div>
+    </div>
+
+    <div id="customErrorSlot"></div>
+
+    <div class="sec"><span class="n">01</span><span class="t">Saturation</span><span class="rule"></span></div>
+    <div class="slider-card">
+      <div class="head">
+        <span class="name">Value</span>
+        <span class="readout" id="customValueDisplay">1.00</span>
+      </div>
+      <input id="customSlider" type="range" min="0" max="2.5" value="1.0" step="0.01" aria-label="Custom saturation">
+      <div class="slider-labels"><span>0.00</span><span>1.00</span><span>2.50</span></div>
+      <div class="slider-actions">
+        <button class="cm-btn-ghost" id="customNativeButton" type="button">Set Native</button>
+        <button class="cm-btn-solid" id="customApplyButton" type="button">Apply</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════ STATUS ════════════════ -->
+  <div class="tab-content" id="tab-status">
+    <div class="page-head">
+      <div class="page-eyebrow">Diagnostics</div>
+      <div class="page-title">Status</div>
+    </div>
+
+    <div id="statusErrorSlot"></div>
+
+    <div class="sec"><span class="n">01</span><span class="t">Module</span><span class="rule"></span></div>
+    <div class="status-card">
+      <div class="status-row"><span class="k">Module</span><span class="v">Ayunda Rusdi Color Enhancer</span></div>
+      <div class="status-row"><span class="k">Version</span><span class="v" id="statVersion">-</span></div>
+      <div class="status-row"><span class="k">State</span><span class="v" id="statState">-</span></div>
+      <div class="status-row"><span class="k">Active preset</span><span class="v" id="statPreset">-</span></div>
+      <div class="status-row"><span class="k">Saturation</span><span class="v" id="statSaturation">-</span></div>
+      <div class="status-row"><span class="k">Backend</span><span class="v">SurfaceFlinger 1022</span></div>
+      <div class="status-row"><span class="k">State read</span><span class="v" id="statRead">-</span></div>
+    </div>
+
+    <div class="footnote">This module controls one verified parameter: SurfaceFlinger's saturation transaction. No independent contrast, white-balance, black-level, or HDR control exists here.</div>
+  </div>
+
+  <!-- ════════════════ ABOUT ════════════════ -->
+  <div class="tab-content" id="tab-about">
+    <div class="page-head">
+      <div class="page-eyebrow">Color Enhancer</div>
+      <div class="page-title">Ayunda Rusdi</div>
+    </div>
+
+    <div class="sec"><span class="n">01</span><span class="t">About</span><span class="rule"></span></div>
+    <div id="aboutErrorSlot"></div>
+    <div class="about-card">
+      <p>Ayunda Risu Color Enhancer is an open-source Magisk module designed to enhance Android display colors, saturation, and brightness.</p>
+      <p>This project is a fork and independent continuation of the original Ayunda Risu Color Enhancer.</p>
+    </div>
+
+    <div class="sec"><span class="n">02</span><span class="t">Original Project</span><span class="rule"></span></div>
+    <div class="about-card">
+      <p><span class="about-k">Original Developer</span><br>Kanagawa Yamada</p>
+      <p><span class="about-k">Original Repository</span><br>LoggingNewMemory/AyundaRisuColorEnhancer</p>
+    </div>
+
+    <div class="sec"><span class="n">03</span><span class="t">Fork &amp; Maintenance</span><span class="rule"></span></div>
+    <div class="about-card">
+      <p><span class="about-k">Forked and maintained by</span><br>KERVIII</p>
+      <p>My goal is to continue development, improve the module, add new features, improve compatibility, and provide additional color presets and display tuning options.</p>
+    </div>
+
+    <div class="sec"><span class="n">04</span><span class="t">Credits</span><span class="rule"></span></div>
+    <div class="about-card">
+      <p>Full credit goes to Kanagawa Yamada for the original project and its foundation.</p>
+      <p>This fork is not affiliated with or officially maintained by the original developer.</p>
+    </div>
+
+    <div class="sec"><span class="n">05</span><span class="t">Open Source</span><span class="rule"></span></div>
+    <div class="about-card">
+      <p>This project will remain open source.</p>
+      <p>Source code, updates, changelogs, and future releases will be published on GitHub.</p>
+      <p><span class="about-k">Developer</span><br>KERVIII</p>
+      <p><span class="about-k">GitHub</span><br><a class="about-link" href="https://github.com/KERVIII" target="_blank" rel="noopener">github.com/KERVIII</a></p>
+    </div>
+
+    <div class="sec"><span class="n">06</span><span class="t">Updates</span><span class="rule"></span></div>
+    <div class="about-card">
+      <p><span class="about-k">Repository</span><br>Soon</p>
+      <p>More updates, releases, and development information will be available on the project repository.</p>
+    </div>
+
+    <div class="sec"><span class="n">07</span><span class="t">Compatibility</span><span class="rule"></span></div>
+    <div class="about-card">
+      <p>This module's only system modification is a single SurfaceFlinger saturation call (transaction 1022). It does not touch frame-rate, refresh-rate, or any other display property.</p>
+      <p>If you also run Zetamin, note that Zetamin's own installer explicitly recommends not combining it with other screen tweaks. The two modules touch unrelated properties, but that guidance applies regardless of which other module you're pairing it with.</p>
+    </div>
+  </div>
+
+  <!-- ════════════════ FLOATING NAVBAR ════════════════ -->
+  <div id="bottom-nav-wrap">
+    <nav id="bottom-nav">
+      <div class="knav-items" id="knavItems">
+        <div class="knav-knob" id="knavKnob"><span class="knav-knob-icon" id="knavKnobIcon"></span></div>
+        <button class="knav-item active" data-tab="home" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          <span>Home</span>
+        </button>
+        <button class="knav-item" data-tab="presets" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+          <span>Presets</span>
+        </button>
+        <button class="knav-item" data-tab="custom" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><circle cx="9" cy="6" r="2" fill="currentColor" stroke="none"/><line x1="4" y1="12" x2="20" y2="12"/><circle cx="15" cy="12" r="2" fill="currentColor" stroke="none"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="11" cy="18" r="2" fill="currentColor" stroke="none"/></svg>
+          <span>Custom</span>
+        </button>
+        <button class="knav-item" data-tab="status" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><line x1="12" y1="11" x2="12" y2="16.5"/><circle cx="12" cy="7.5" r="1" fill="currentColor" stroke="none"/></svg>
+          <span>Status</span>
+        </button>
+        <button class="knav-item" data-tab="about" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.5" r="3.2"/><path d="M4.5 20.2a7.5 7.5 0 0 1 15 0"/></svg>
+          <span>About</span>
+        </button>
+      </div>
+    </nav>
+  </div>
+
+  <!-- ════════════════ CONFIRM DIALOG (Reset only) ════════════════ -->
+  <div id="confirm-overlay">
+    <div class="confirm-sheet">
+      <h3 id="confirm-title">Reset</h3>
+      <p id="confirm-desc">This clears the saved preset and restores native colors.</p>
+      <div class="confirm-actions">
+        <button class="btn-ghost" id="confirmNoButton" type="button">Cancel</button>
+        <button class="btn-solid" id="confirmYesButton" type="button">Reset</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════ GHOST LOADER (created once, visibility toggled) ═══
+       Original CSS interpretation in the spirit of BlackisPlay's MIT-
+       licensed "Pac-Man Ghost Loader" on Uiverse.io (uiverse.io/BlackisPlay/
+       sweet-frog-67) - red pixel-style body, up/down float, white eyes with
+       moving blue pupils, animated shadow, as documented in that piece.
+       The complete original source wasn't fully retrievable (client-
+       rendered code viewer), so this is an original implementation of the
+       same documented visual language rather than a literal copy. ══════ -->
+  <div id="ghost-loader" class="ghost-wrap" aria-hidden="true">
+    <div class="ghost">
+      <div class="ghost-body">
+        <div class="ghost-eye ghost-eye-l"><div class="ghost-pupil"></div></div>
+        <div class="ghost-eye ghost-eye-r"><div class="ghost-pupil"></div></div>
+      </div>
+      <div class="ghost-shadow"></div>
+    </div>
+  </div>
+
+  <!-- ════════════════ TOAST ════════════════ -->
+  <div id="toast"></div>
+
+</div>
+<script src="/app.js"></script>
+</body>
+</html>
