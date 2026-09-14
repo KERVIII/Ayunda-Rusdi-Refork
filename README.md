@@ -1,38 +1,78 @@
-# Ayunda Rusdi Color Enhancer v6.5
+# Ayunda Rusdi Color Enhancer
 
-WebUI and system tweak update focused on navigation, preview controls, and Android WebView compatibility.
+Android display color enhancement module with a WebUI for saturation control, color presets, preview tools, diagnostics, and optional system animation adjustments.
 
-## Changes
+Ayunda Rusdi is an independent fork and continued development of the original project by **Kanagawa Yamada**.
 
-- Added floating liquid-glass navigation
-- Added swipeable tab navigation
-- Added interactive Before/After color preview
-- Added saturation-linked preview
-- Added multiple preview scenes
-- Improved navigation animations and touch feedback
-- Updated About section
-- Added Module Manager banner integration
-- Improved responsive layout
-- Improved Android WebView compatibility
-- Reduced unnecessary background activity
-- Added system responsiveness tweaks
-- Added smoother system transition handling
+---
 
-## Zetamin 2 Integration
+## Features
 
-- Integrated Zetamin 2
-- Added additional system tweaks alongside the Zetamin 2 configuration
-- Retained the existing Zetamin 2 performance tweaks
-- Added additional responsiveness and background activity adjustments
+### Display Color Enhancement
 
-## Preview
+- Adjustable display saturation
+- Preset-based saturation control
+- Custom saturation value
+- Persistent module state
+- Preset and saturation synchronization
+- Reset and restore handling
+- Backend error handling
+- Input validation
 
-The WebUI color preview operates independently from the backend configuration. Preview changes do not apply system commands or modify the active color enhancement settings.
+### Color Presets
+
+Ayunda Rusdi currently provides **18 color presets**:
+
+1. Risu True
+2. Risu Paper
+3. Risu Natural
+4. Risu Cinema
+5. Risu Ice
+6. Risu Deep
+7. Risu P3
+8. Risu Ember
+9. Risu AMOLED
+10. Risu HDR
+11. Risu Game
+12. Risu Vivid
+13. Risu Anime
+14. Risu Hyper
+15. Risu Custom
+16. Risu Muted
+17. Risu Comic
+18. Risu OLED
+
+### Additional Presets
+
+**Risu Muted**
+- Reduced saturation
+- Less aggressive color output
+
+**Risu Comic**
+- Higher saturation
+- Stronger primary colors
+
+**Risu OLED**
+- Higher saturation
+- Stronger color separation
+
+---
+
+## Display Backend
+
+Ayunda Rusdi uses the verified Android SurfaceFlinger saturation interface:
+
+```text
+service call SurfaceFlinger 1022 f <value>
+```
+
+The implemented backend controls the display saturation multiplier.
+
+The project does not claim unsupported display controls or unverified SurfaceFlinger transactions.
+
+---
 
 ## Credits
 
-Original project by **Kanagawa Yamada**
-
-Fork and continued development by **KERVIII**
-
-Based
+**Original Developer:** Kanagawa Yamada - for his majestic work.  
+**Fork & Maintenance:** KERVIII
