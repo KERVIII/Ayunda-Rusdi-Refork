@@ -18,6 +18,8 @@ Ayunda Rusdi is an independent fork and continued development of the original pr
 - Reset and restore handling
 - Backend error handling
 - Input validation
+- Pin Favorite Ruri's Smile
+- Share Diagnostic a (report issue)
 
 ### Color Presets
 
