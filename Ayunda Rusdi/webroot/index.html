@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Ayunda Rusdi Color Enhancer</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- ════════════════ HOME ════════════════ -->
+  <div class="tab-content active" id="tab-home">
+    <div class="page-head">
+      <div class="page-eyebrow">Color Enhancer</div>
+      <div class="page-title">Ayunda Rusdi</div>
+      <button class="status-pill" id="statusPill" type="button" aria-label="Go to Diagnostics">
+        <span class="dot" id="statusDot"></span>
+        <span id="statusPillText">-</span>
+      </button>
+    </div>
+
+    <div id="homeErrorSlot"></div>
+
+    <div class="hero">
+      <div class="hero-tag">RISU</div>
+      <div class="hero-word" id="heroPresetName">-</div>
+      <div class="hero-meta" id="heroPresetDesc">-</div>
+      <div class="hero-row">
+        <span class="dot" id="heroDot"></span>
+        <span>Module is <b id="heroStateWord">-</b></span>
+      </div>
+    </div>
+
+    <div class="sec"><span class="n">01</span><span class="t">Overview</span><span class="rule"></span></div>
+    <div class="stat-row">
+      <div class="stat-card">
+        <div class="lbl">Saturation</div>
+        <div class="val" id="statSatQuick">-</div>
+      </div>
+      <div class="stat-card">
+        <div class="lbl">State</div>
+        <div class="val" id="statStateQuick">-</div>
+      </div>
+    </div>
+
+    <div class="sec"><span class="n">02</span><span class="t">Saturation Level</span><span class="rule"></span></div>
+    <div class="bar-card">
+      <div class="bar-row-head">
+        <span class="k">SurfaceFlinger 1022</span>
+        <span class="v" id="homeMeterValue">-</span>
+      </div>
+      <div class="bar-track"><div class="bar-fill" id="homeMeterFill"></div></div>
+    </div>
+
+    <div class="sec"><span class="n">03</span><span class="t">Quick Actions</span><span class="rule"></span></div>
+    <div class="qa-row">
+      <button class="qa-btn" id="qaNative" type="button"><span class="qa-n">01</span>Native</button>
+      <button class="qa-btn" id="qaOff" type="button"><span class="qa-n">02</span>Disable</button>
+      <button class="qa-btn danger" id="qaReset" type="button"><span class="qa-n">03</span>Reset</button>
+    </div>
+    <div class="pinned-box hidden" id="homePinnedBox">
+      <div class="pinned-label">Pinned</div>
+      <div class="chip-row" id="homePinned"></div>
+    </div>
+
+    <div class="sec"><span class="n">04</span><span class="t">Color Preview</span><span class="rule"></span></div>
+    <div class="preview-card">
+      <div class="preview-scene-row">
+        <button class="preview-scene-btn active" id="sceneBtn0" type="button">Scene 1</button>
+        <button class="preview-scene-btn" id="sceneBtn1" type="button">Scene 2</button>
+        <button class="preview-scene-btn" id="sceneBtn2" type="button">Scene 3</button>
+      </div>
+      <div class="preview-compare" id="previewCompare">
+        <img id="previewImgBefore" class="preview-img" alt="Before">
+        <div class="preview-after-wrap" id="previewAfterWrap">
+          <img id="previewImgAfter" class="preview-img" alt="After">
+        </div>
+        <div class="preview-divider" id="previewDivider"><span class="preview-handle">&#8596;</span></div>
+        <span class="preview-tag preview-tag-before">Before</span>
+        <span class="preview-tag preview-tag-after">After</span>
+      </div>
+      <p class="preview-caption preview-error hidden" id="previewError" role="status"></p>
+      <p class="preview-caption">After reflects <span id="previewSatLabel">1.05</span> saturation - the same value shown in Diagnostics.</p>
+      <p class="preview-disclaimer">Visual preview only. Actual display output depends on your device, panel, ROM, and display pipeline.</p>
+    </div>
+
+    <div class="footnote">Presets are saturation-tuned approximations. The backend controls one parameter: saturation.</div>
+  </div>
+
+  <!-- ════════════════ PRESETS ════════════════ -->
+  <div class="tab-content" id="tab-presets">
+    <div class="page-head">
+      <div class="page-eyebrow" id="presetsCount">- Profiles</div>
+      <div class="page-title">Risu Presets</div>
+    </div>
+
+    <div id="presetsErrorSlot"></div>
+
+    <div class="pinned-box hidden" id="presetsPinnedBox">
+      <div class="pinned-label">Pinned</div>
+      <div class="chip-row" id="presetsPinned"></div>
+    </div>
+
+    <div class="sec"><span class="n">01</span><span class="t">Choose A Preset</span><span class="rule"></span></div>
+    <div class="grid-2" id="presetGrid"></div>
+    <p class="footnote tight">Tap the star on a card to pin it.</p>
+
+    <div class="footnote">Every preset is a saturation value sent to SurfaceFlinger. Names describe the visual target, not hardware color-space control.</div>
+  </div>
+
+  <!-- ════════════════ CONTROLS ════════════════ -->
+  <div class="tab-content" id="tab-controls">
+    <div class="page-head">
+      <div class="page-eyebrow">Manual Tuning</div>
+      <div class="page-title">Controls</div>
+    </div>
+
+    <div id="controlsErrorSlot"></div>
+
+    <div class="sec"><span class="n">01</span><span class="t">Risu Custom</span><span class="rule"></span></div>
+    <div class="hint-card" id="customHint">Select <b>Risu Custom</b> in Presets to enable manual saturation.</div>
+    <div class="slider-card" id="customCard">
+      <div class="head">
+        <span class="name">Saturation</span>
+        <span class="readout" id="customValueDisplay">1.00</span>
+      </div>
+      <input id="customSlider" type="range" min="0" max="2.5" value="1.0" step="0.01" aria-label="Custom saturation">
+      <div class="slider-labels"><span>0.00</span><span>1.00</span><span>2.50</span></div>
+      <p class="slider-note">Applies when you release the slider.</p>
+      <div class="slider-actions">
+        <button class="cm-btn-secondary" id="customNativeButton" type="button">Set Native</button>
+      </div>
+    </div>
+
+    <div class="sec"><span class="n">02</span><span class="t">System UI Tweaks</span><span class="rule"></span></div>
+    <div id="tweaksUnsupported" class="hint-card hidden">Animation tweaks are unavailable: the <code>settings</code> command was not found.</div>
+    <div class="slider-card" id="tweaksCard">
+      <div class="head">
+        <span class="name">Animation Scale</span>
+        <span class="readout" id="tweakValueDisplay">0.85</span>
+      </div>
+      <input id="tweakSlider" type="range" min="0.25" max="2" value="0.85" step="0.05" aria-label="Animation scale">
+      <div class="slider-labels"><span>0.25</span><span>0.85</span><span>2.00</span></div>
+      <p class="slider-note">Sets window, transition and animator duration scales together. Originals are backed up and restored on Reset.</p>
+      <div class="status-card tweak-rows">
+        <div class="status-row"><span class="k">Window</span><span class="v" id="twWindow">-</span></div>
+        <div class="status-row"><span class="k">Transition</span><span class="v" id="twTransition">-</span></div>
+        <div class="status-row"><span class="k">Animator</span><span class="v" id="twAnimator">-</span></div>
+        <div class="status-row"><span class="k">Tweak</span><span class="v" id="twApplied">-</span></div>
+      </div>
+      <div class="slider-actions">
+        <button class="cm-btn-secondary" id="tweakResetButton" type="button">Restore Originals</button>
+        <button class="cm-btn-solid" id="tweakApplyButton" type="button">Apply</button>
+      </div>
+    </div>
+
+    <div class="sec"><span class="n">03</span><span class="t">Per-App Profiles</span><span class="rule"></span></div>
+    <div class="status-card" id="autoCard">
+      <div class="status-row"><span class="k">Auto switching</span><span class="v" id="autoState">-</span></div>
+      <div class="status-row"><span class="k">Listener</span><span class="v" id="watcherState">-</span></div>
+      <div class="status-row"><span class="k">Last app seen</span><span class="v" id="lastFg">-</span></div>
+      <div class="status-row"><span class="k">Active profile</span><span class="v" id="overrideNow">-</span></div>
+      <div class="status-row"><span class="k">Active value</span><span class="v" id="overrideVal">-</span></div>
+      <div class="status-row"><span class="k">Backend</span><span class="v" id="applyResult">-</span></div>
+    </div>
+    <div class="slider-actions auto-actions"><button class="cm-btn-secondary" id="autoToggle" type="button">Turn auto switching off</button></div>
+    <div class="hint-card" id="profileEmpty">No profiles yet. Add one below.</div>
+    <div class="profile-list" id="profileList"></div>
+    <div class="slider-card" id="profileForm">
+      <div class="head"><span class="name" id="profileFormTitle">New profile</span></div>
+      <label class="fld"><span>Package</span>
+        <input id="profilePkg" type="text" autocapitalize="none" autocomplete="off" autocorrect="off" spellcheck="false" maxlength="200" placeholder="com.example.app"></label>
+      <label class="fld"><span>Applies</span>
+        <select id="profileKind"><option value="preset">A preset</option><option value="sat">A saturation value</option></select></label>
+      <label class="fld" id="profilePresetWrap"><span>Preset</span><select id="profilePreset"></select></label>
+      <label class="fld hidden" id="profileSatWrap"><span>Saturation (0.00-2.50)</span>
+        <input id="profileSat" type="number" step="0.01" min="0" max="2.5" inputmode="decimal" value="1.00"></label>
+      <div class="slider-actions">
+        <button class="cm-btn-secondary hidden" id="profileCancel" type="button">Cancel edit</button>
+        <button class="cm-btn-solid" id="profileSave" type="button">Save profile</button>
+      </div>
+      <p class="slider-note">When an app with a profile comes to the foreground its saturation is applied; when you leave it, your saved setting is restored. <b>Apply</b> sets a profile as your current setting right now. Automatic switching reads Android's event log. If “Last app seen” stays empty after you switch apps, this ROM is not providing that event and automatic switching cannot work here.</p>
+    </div>
+
+    <div class="sec"><span class="n">04</span><span class="t">Diagnostics</span><span class="rule"></span></div>
+    <div class="status-card">
+      <div class="status-row"><span class="k">Version</span><span class="v" id="statVersion">-</span></div>
+      <div class="status-row"><span class="k">State</span><span class="v" id="statState">-</span></div>
+      <div class="status-row"><span class="k">Active preset</span><span class="v" id="statPreset">-</span></div>
+      <div class="status-row"><span class="k">Saturation</span><span class="v" id="statSaturation">-</span></div>
+      <div class="status-row"><span class="k">Backend</span><span class="v" id="statBackend">-</span></div>
+      <div class="status-row"><span class="k">State file</span><span class="v" id="statRead">-</span></div>
+      <div class="status-row"><span class="k">Root</span><span class="v" id="statRoot">-</span></div>
+      <div class="status-row"><span class="k">Android</span><span class="v" id="statAndroid">-</span></div>
+      <div class="status-row"><span class="k">Device</span><span class="v" id="statModel">-</span></div>
+      <div class="status-row"><span class="k">Verification</span><span class="v" id="statVerify">-</span></div>
+    </div>
+
+    <div class="slider-card" id="logCard">
+      <div class="head"><span class="name">Diagnostic Log</span></div>
+      <textarea id="diagText" class="diag-text" readonly rows="16" aria-label="Diagnostic log" spellcheck="false"></textarea>
+      <p class="slider-note">Module, Android, device and state details only. No package names, paths, accounts or Android logcat. <b>Save Logs</b> writes a new file to <code>Download/AyundaRusdi Logs/</code> and never overwrites an older one.</p>
+      <p class="share-status" id="logStatus" role="status" aria-live="polite"></p>
+      <div class="slider-actions">
+        <button class="cm-btn-secondary" id="diagCopyButton" type="button">Copy</button>
+        <button class="cm-btn-solid" id="diagSaveButton" type="button">Save Logs</button>
+      </div>
+    </div>
+
+    <div class="footnote">Color control is limited to SurfaceFlinger's saturation transaction. No independent contrast, white-balance, black-level or HDR control exists here.</div>
+  </div>
+
+  <!-- ════════════════ ABOUT ════════════════ -->
+  <div class="tab-content" id="tab-about">
+    <div class="page-head">
+      <div class="page-eyebrow">Color Enhancer</div>
+      <div class="page-title">Ayunda Rusdi</div>
+    </div>
+
+    <div id="aboutErrorSlot"></div>
+    <div class="sec"><span class="n">01</span><span class="t">About</span><span class="rule"></span></div>
+    <div class="about-card">
+      <p>Ayunda Rusdi Color Enhancer is an open-source root module that adjusts display saturation through SurfaceFlinger, with optional system animation-scale tweaks.</p>
+      <p>This project is a fork and independent continuation of the original Ayunda Risu Color Enhancer.</p>
+      <p><span class="about-k">Version</span><br><span id="aboutVersion">-</span></p>
+    </div>
+
+    <div class="sec"><span class="n">02</span><span class="t">Original Project</span><span class="rule"></span></div>
+    <div class="about-card">
+      <p><span class="about-k">Original Developer</span><br>Kanagawa Yamada</p>
+      <p><span class="about-k">Original Repository</span><br>LoggingNewMemory/AyundaRisuColorEnhancer</p>
+    </div>
+
+    <div class="sec"><span class="n">03</span><span class="t">Fork &amp; Maintenance</span><span class="rule"></span></div>
+    <div class="about-card">
+      <p><span class="about-k">Forked and maintained by</span><br>KERVIII</p>
+      <p><span class="about-k">GitHub</span><br><a class="about-link" href="https://github.com/KERVIII" target="_blank" rel="noopener">github.com/KERVIII</a></p>
+      <p>Full credit goes to Kanagawa Yamada for the original project. This fork is not affiliated with or officially maintained by the original developer.</p>
+    </div>
+
+    <div class="sec"><span class="n">04</span><span class="t">What It Changes</span><span class="rule"></span></div>
+    <div class="about-card">
+      <p>Color: one SurfaceFlinger saturation call (transaction 1022). It does not touch frame-rate, refresh-rate or any other display property.</p>
+      <p>System UI Tweaks (optional): the three global animation scales, backed up first and restored on request, on Reset, or on uninstall. No background service runs.</p>
+      <p>Pinned presets and per-app profiles are small files in the module's state folder. Profiles switch automatically through one small event-driven listener that runs only while a profile exists and auto switching is on (no polling); Apply also sets a profile on request.</p>
+    </div>
+  </div>
+
+  <!-- ════════════════ FLOATING NAVBAR ════════════════ -->
+  <div id="bottom-nav-wrap">
+    <nav id="bottom-nav">
+      <div class="knav-items" id="knavItems">
+        <div class="knav-knob" id="knavKnob"><span class="knav-knob-icon" id="knavKnobIcon"></span></div>
+        <button class="knav-item active" data-tab="home" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          <span>Home</span>
+        </button>
+        <button class="knav-item" data-tab="presets" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+          <span>Presets</span>
+        </button>
+        <button class="knav-item" data-tab="controls" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><circle cx="9" cy="6" r="2" fill="currentColor" stroke="none"/><line x1="4" y1="12" x2="20" y2="12"/><circle cx="15" cy="12" r="2" fill="currentColor" stroke="none"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="11" cy="18" r="2" fill="currentColor" stroke="none"/></svg>
+          <span>Controls</span>
+        </button>
+        <button class="knav-item" data-tab="about" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.5" r="3.2"/><path d="M4.5 20.2a7.5 7.5 0 0 1 15 0"/></svg>
+          <span>About</span>
+        </button>
+      </div>
+    </nav>
+  </div>
+
+  <!-- ════════════════ CONFIRM DIALOG (Reset only) ════════════════ -->
+  <div id="confirm-overlay">
+    <div class="confirm-sheet">
+      <h3 id="confirm-title">Reset</h3>
+      <p id="confirm-desc">This clears the saved preset and restores native colors.</p>
+      <div class="confirm-actions">
+        <button class="btn-secondary" id="confirmNoButton" type="button">Cancel</button>
+        <button class="btn-solid" id="confirmYesButton" type="button">Reset</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════ TOAST ════════════════ -->
+  <div id="toast"></div>
+
+</div>
+<script src="/app.js"></script>
+</body>
+</html>
