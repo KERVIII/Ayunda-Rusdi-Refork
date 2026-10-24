@@ -1,4 +1,4 @@
-# Ayunda Rusdi Color Enhancer 7.0
+# Ayunda Rusdi Color Enhancer 7.0.1
 
 Magisk / KernelSU / APatch module that adjusts display **saturation** through
 SurfaceFlinger, with an optional **System UI animation-scale tweak**, pinned presets, per-app profiles and a shareable diagnostic. Fork of
@@ -43,7 +43,7 @@ WebUI and the shell scripts both read this file.
 | 18 | Risu OLED | 1.20 |
 
 Risu HDR is a saturation profile, **not real HDR**. Risu P3 does **not** switch to a DCI-P3 color space. Risu AMOLED / OLED / Deep give **no** hardware black-level control. Values for presets 1–14 are unchanged from V6.7. Muted, Comic and OLED are new
-in V7.0; their values are saturation choices, not measured color science.
+in V7.0.1; their values are saturation choices, not measured color science.
 
 
 ## Pinned presets (favorites)

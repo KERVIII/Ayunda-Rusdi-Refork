@@ -1,5 +1,5 @@
 ui_print "------------------------------------"
-ui_print "   Ayunda Rusdi Color Enhancer V7.0 "
+ui_print "   Ayunda Rusdi Color Enhancer V7.0.2 "
 ui_print "------------------------------------"
 ui_print " Fork: KERVIII | Original: Kanagawa Yamada"
 ui_print "------------------------------------"
