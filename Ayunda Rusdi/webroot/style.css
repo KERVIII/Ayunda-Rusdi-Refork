@@ -450,3 +450,54 @@ button:disabled { opacity: .45; cursor: not-allowed; pointer-events: none; }
 
 /* Diagnostic Log status: allow the "Saved:\n<path>" / "Failed to save logs:\n<reason>" line breaks */
 .share-status { white-space: pre-line; overflow-wrap: anywhere; }
+
+/* ── Preset selector (Issue 3): replaces the native <select> dialog for the
+   per-app profile preset. Same tokens as the rest of the UI: surface cards,
+   hairline borders, rose accent for the selected row, mono numerals. Bottom
+   sheet; only opacity/transform animate. ───────────────────────────────── */
+.psel-trigger {
+  width: 100%; min-height: 44px; padding: 0 12px; display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  border-radius: var(--r-sm); border: 1px solid var(--hair-2); background: var(--surface-2, #1a1a1a); color: var(--text);
+  font: 600 14px var(--mono); text-align: left; cursor: pointer; transition: background-color .12s ease, border-color .12s ease;
+}
+.psel-trigger:active { background: var(--surface-3); }
+.psel-trigger:focus-visible, .psel-row:focus-visible, .psel-close:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.psel-trigger:disabled { opacity: .5; }
+.psel-trigger-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.psel-trigger.empty .psel-trigger-text { color: var(--text-dim); font-weight: 500; }
+.psel-chev { flex: none; color: var(--text-dim); }
+
+.psel-overlay { display: none; position: fixed; inset: 0; z-index: 190; align-items: flex-end; justify-content: center; background: rgba(0,0,0,.6); }
+.psel-overlay.show { display: flex; animation: pselFade .18s ease; }
+.psel-sheet {
+  width: 100%; max-width: 480px; display: flex; flex-direction: column; outline: none;
+  max-height: 80vh; max-height: min(80dvh, calc(100dvh - env(safe-area-inset-top, 0px) - 24px));
+  background: var(--surface); border: 1px solid var(--hair-2); border-bottom: none; border-radius: 14px 14px 0 0;
+}
+.psel-overlay.show .psel-sheet { animation: pselUp .22s cubic-bezier(.16,1,.3,1); }
+@keyframes pselFade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes pselUp { from { transform: translateY(24px); } to { transform: translateY(0); } }
+.psel-head { flex: none; display: flex; align-items: center; justify-content: space-between; padding: 14px 8px 10px 18px; border-bottom: 1px solid var(--hair); }
+.psel-head h3 { font: 800 15px var(--display); letter-spacing: .01em; }
+.psel-close { width: 44px; height: 44px; border: none; background: none; color: var(--text-dim); font-size: 26px; line-height: 1; cursor: pointer; border-radius: var(--r-sm); }
+.psel-close:active { background: var(--surface-3); }
+.psel-list { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding: 6px 0 calc(10px + env(safe-area-inset-bottom, 0px)); }
+.psel-list::-webkit-scrollbar { display: none; }
+.psel-row {
+  width: 100%; min-height: 56px; display: flex; align-items: center; gap: 12px; padding: 10px 18px;
+  background: none; border: none; border-bottom: 1px solid var(--hair); color: var(--text); font: inherit; text-align: left; cursor: pointer;
+  transition: background-color .12s ease;
+}
+.psel-row:last-child { border-bottom: none; }
+.psel-row:active { background: var(--surface-3); }
+.psel-main { flex: 1; min-width: 0; }
+.psel-name { display: flex; align-items: center; gap: 8px; font: 700 14px var(--body-f); }
+.psel-tag { padding: 2px 7px; border-radius: 999px; font: 800 9px var(--mono); letter-spacing: .06em; background: var(--accent-soft); color: var(--accent); }
+.psel-desc { margin-top: 2px; font-size: 11.5px; color: var(--text-dim); line-height: 1.35; }
+.psel-val { flex: none; font: 700 13px var(--mono); color: var(--text-dim); }
+.psel-radio { flex: none; width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--hair-2); position: relative; transition: border-color .12s ease; }
+.psel-row.selected { background: var(--accent-soft); }
+.psel-row.selected .psel-radio { border-color: var(--accent); }
+.psel-row.selected .psel-radio::after { content: ""; position: absolute; inset: 3px; border-radius: 50%; background: var(--accent); }
+.psel-row.selected .psel-val { color: var(--accent); }
+.psel-empty { padding: 22px 18px; font-size: 12.5px; color: var(--text-dim); }

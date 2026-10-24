@@ -70,6 +70,13 @@ const App = {
     pinnedBuiltFor: "",
     profilesBuiltFor: "",
     editingPkg: "",
+    statusRaw: "",    // last status.sh output; a change marks the diagnostic text stale
+    diagStale: true,  // diagnostic text needs regenerating
+    refreshProbe: null, // in-memory only: supported modes from the last probe
+    probing: false,
+    cacheInfo: null, // dry-run text from cache.sh status; in memory only
+    cacheLoading: false,
+    healTried: false, // listener self-heal already attempted for this episode
 };
 
 function $(id) { return document.getElementById(id); }
@@ -185,6 +192,7 @@ function setSceneImages(i) {
 async function showScene(i) {
     if (i < 0 || i >= PREVIEW_SCENES.length) return;
     const token = ++sceneToken;
+    ensurePreviewImages();
     const compare = $("previewCompare"), err = $("previewError");
     const probe = new Image();
     probe.src = PREVIEW_SCENES[i].src;
@@ -210,8 +218,19 @@ async function showScene(i) {
         requestAnimationFrame(() => compare.classList.remove("fading"));
     }, 140);
 }
+let previewObserver = null;
+function ensurePreviewImages() {
+    if ($("previewImgBefore").getAttribute("src")) return;
+    if (previewObserver) { previewObserver.disconnect(); previewObserver = null; }
+    setSceneImages(previewScene);
+}
 function renderPreview() {
-    if (!$("previewImgBefore").getAttribute("src")) setSceneImages(previewScene);
+    if (!$("previewImgBefore").getAttribute("src") && !previewObserver) {
+        if ("IntersectionObserver" in window) {
+            previewObserver = new IntersectionObserver((e) => { if (e.some((x) => x.isIntersecting)) ensurePreviewImages(); }, { rootMargin: "120px 0px" });
+            previewObserver.observe($("previewCompare"));
+        } else ensurePreviewImages();
+    }
     const sat = App.readOk ? shownSaturation() : 1.0;
     $("previewAfterWrap").style.setProperty("--preview-sat", sat);
     $("previewSatLabel").textContent = sat.toFixed(2);
@@ -317,7 +336,7 @@ function renderPresets() {
         grid.textContent = "";
         App.presets.forEach((p) => grid.appendChild(buildPresetCard(p)));
         App.gridBuiltFor = sig;
-        fillProfilePresetSelect();
+        setProfilePreset($("profilePreset").value);
     }
     const activeId = isEnabled() ? App.status.active_preset : "";
     grid.querySelectorAll("button.pcard").forEach((card) => {
@@ -369,6 +388,90 @@ function renderTweaks() {
     }
 }
 
+// ── Force Peak Refresh Rate ──
+// Applied state ALWAYS comes from the latest status read (refresh_applied). The
+// probe (supported modes via dumpsys, heavy) is kept in memory only: run lazily
+// the first time Controls is shown, re-run after every refresh-rate change or
+// Clear Cache, never persisted, so nothing cached can override the real state.
+function parseKv(text) {
+    const o = {};
+    text.split("\n").forEach((l) => { const i = l.indexOf("="); if (i > 0) o[l.slice(0, i)] = l.slice(i + 1).trim(); });
+    return o;
+}
+async function probeRefresh(force) {
+    if (App.probing || (App.refreshProbe && !force)) return;
+    App.probing = true;
+    const res = await executeCommand(`sh ${MODDIR}/refresh.sh probe 2>&1`);
+    App.probing = false;
+    App.refreshProbe = res.errno === 0 ? parseKv(res.stdout) : { refresh_supported: "0", refresh_reason: "the probe could not run" };
+    renderRefresh();
+}
+function renderRefresh() {
+    const ok = App.readOk, s = App.status || {}, p = App.refreshProbe;
+    const cmdOk = ok && s.refresh_cmd === "1";
+    const applied = cmdOk && s.refresh_applied === "1";
+    const supported = !!(p && p.refresh_supported === "1");
+    const btn = $("refreshToggle"), note = $("refreshUnsupported");
+    const blocked = !ok ? "state could not be read" : (!cmdOk ? "the settings command was not found" : (p && !supported && !applied ? p.refresh_reason : ""));
+    note.classList.toggle("hidden", !blocked);
+    note.textContent = blocked ? `Force Peak Refresh Rate is unavailable: ${blocked}.` : "";
+    $("rfMax").textContent = p && p.refresh_max ? `${p.refresh_max} Hz` : (p ? "unknown" : (App.probing ? "checking..." : "-"));
+    $("rfCurrent").textContent = p && p.refresh_current ? `${p.refresh_current} Hz` : (p ? "unknown" : "-");
+    let setting = "-";
+    if (cmdOk) {
+        if (applied) setting = `Forced (${s.refresh_value} Hz)` + (p && p.refresh_current && Number(p.refresh_current) < Number(s.refresh_value) ? `, active mode ${p.refresh_current} Hz (idle or ROM override)` : "");
+        else if (s.refresh_drift === "1") setting = "Changed since applied (not forced)";
+        else if (p) setting = p.refresh_peak === "null" && p.refresh_min === "null" ? "System default" : `Peak ${p.refresh_peak === "null" ? "default" : p.refresh_peak} / Min ${p.refresh_min === "null" ? "default" : p.refresh_min}`;
+    }
+    $("rfSetting").textContent = setting;
+    $("refreshReadout").textContent = !cmdOk ? "-" : (applied ? "ON" : "OFF");
+    btn.textContent = !cmdOk ? "Force Peak Refresh Rate: -" : `Force Peak Refresh Rate: ${applied ? "ON" : "OFF"}`;
+    btn.setAttribute("aria-pressed", applied ? "true" : "false");
+    btn.classList.toggle("cm-btn-solid", !applied);
+    btn.classList.toggle("cm-btn-secondary", applied);
+    btn.disabled = !cmdOk || (!applied && !supported) || document.body.dataset.busy === "1";
+}
+async function toggleRefresh() {
+    const applied = App.readOk && App.status.refresh_applied === "1";
+    const max = App.refreshProbe && App.refreshProbe.refresh_max;
+    const ok = await runAction(`sh ${MODDIR}/refresh.sh ${applied ? "off" : "on"}`, applied ? "Refresh-rate settings restored" : `Peak refresh requested: ${max} Hz`);
+    await probeRefresh(true); // the mode and settings may have changed either way
+    return ok;
+}
+// Dry run of exactly what Clear Cache would remove (same scan in cache.sh).
+// In-memory only; re-read after Clear Cache, never persisted.
+async function refreshCacheInfo() {
+    const res = await executeCommand(`sh ${MODDIR}/cache.sh status 2>&1`);
+    const kv = res.errno === 0 ? parseKv(res.stdout) : null;
+    const n = kv ? kv.cache_items : "?";
+    App.cacheInfo = !kv || !/^[0-9]+$/.test(n) ? "Could not check what can be cleared." : (n === "0" ? "Nothing to clear right now." : `Clearable now: ${n} item${n === "1" ? "" : "s"} (${kv.cache_bytes} B).`);
+    $("cacheInfo").textContent = App.cacheInfo;
+}
+// Controls-only data is read lazily, once per session (and after changes), not at startup.
+function loadControlsLazy() {
+    if (App.activeTab !== "controls" || !App.readOk) return;
+    if (!App.refreshProbe) probeRefresh(false);
+    if (!App.cacheInfo && !App.cacheLoading) { App.cacheLoading = true; refreshCacheInfo().finally(() => { App.cacheLoading = false; }); }
+}
+async function clearCache() {
+    $("cacheStatus").textContent = "";
+    const res = { ok: false };
+    App.error = null;
+    setBusy(true);
+    const r = await executeCommand(`sh ${MODDIR}/cache.sh clear`);
+    // UI-side temporary data is rebuilt from the backend, never trusted after a clear
+    App.refreshProbe = null; App.statusRaw = ""; App.diagStale = true; App.cacheInfo = null;
+    await refreshFromBackend();
+    setBusy(false);
+    res.ok = r.errno === 0 && /^OK\b/.test(r.stdout.trim());
+    const msg = res.ok ? r.stdout.trim().replace(/^OK\s+/, "") : (r.stderr.trim() || r.stdout.trim() || `Command failed (errno ${r.errno}).`);
+    $("cacheStatus").textContent = res.ok ? `Done: ${msg}.` : `Failed: ${msg}`;
+    $("cacheStatus").classList.toggle("ok", res.ok);
+    $("cacheStatus").classList.toggle("err", !res.ok);
+    if (res.ok) toast("Cache cleared"); else { setError(msg); renderErrorSlots(); }
+    if (App.activeTab === "controls") { probeRefresh(true); refreshCacheInfo(); }
+}
+
 function renderDiagnostics() {
     const set = (id, v) => { $(id).textContent = v; };
     if (!App.readOk) {
@@ -392,17 +495,105 @@ function renderDiagnostics() {
 }
 
 // ── per-app profiles ──
-function fillProfilePresetSelect() {
-    const sel = $("profilePreset");
-    const keep = sel.value;
-    sel.textContent = "";
+// Preset selector: a bottom sheet that replaces the native <select> dialog.
+// #profilePreset (hidden input) still holds the form value, so saveProfile()
+// and editProfile() keep one source for the chosen id. Rows are built each time
+// the sheet opens from App.presets + the real backend state, so nothing is stale.
+function setProfilePreset(id) {
+    const p = id && id !== "risu_custom" ? findPreset(id) : null;
+    $("profilePreset").value = p ? p.id : "";
+    $("profilePresetBtnText").textContent = p ? `${p.name} (${fmt(p.value)})` : "Choose a preset";
+    $("profilePresetBtn").classList.toggle("empty", !p);
+}
+function presetSheetOpen() { return $("presetSheet").classList.contains("show"); }
+function renderPresetSheet() {
+    const list = $("pselList"), top = list.scrollTop;
+    const chosen = $("profilePreset").value;
+    const activeId = isEnabled() ? App.status.active_preset : "";
+    const frag = document.createDocumentFragment();
     App.presets.filter((p) => p.id !== "risu_custom").forEach((p) => {
-        const o = document.createElement("option");
-        o.value = p.id;
-        o.textContent = `${p.name} (${fmt(p.value)})`;
-        sel.appendChild(o);
+        const row = document.createElement("button");
+        row.type = "button";
+        row.className = "psel-row" + (p.id === chosen ? " selected" : "");
+        row.dataset.id = p.id;
+        row.setAttribute("role", "radio");
+        row.setAttribute("aria-checked", p.id === chosen ? "true" : "false");
+        const main = document.createElement("span");
+        main.className = "psel-main";
+        const name = document.createElement("span");
+        name.className = "psel-name";
+        name.textContent = p.name;
+        if (p.id === activeId) {
+            const tag = document.createElement("span");
+            tag.className = "psel-tag";
+            tag.textContent = "ACTIVE";
+            name.appendChild(tag);
+        }
+        const desc = document.createElement("span");
+        desc.className = "psel-desc";
+        desc.style.display = "block";
+        desc.textContent = p.description;
+        main.appendChild(name);
+        main.appendChild(desc);
+        const val = document.createElement("span");
+        val.className = "psel-val";
+        val.textContent = fmt(p.value);
+        const radio = document.createElement("span");
+        radio.className = "psel-radio";
+        radio.setAttribute("aria-hidden", "true");
+        row.appendChild(main);
+        row.appendChild(val);
+        row.appendChild(radio);
+        frag.appendChild(row);
     });
-    if (keep) sel.value = keep;
+    list.textContent = "";
+    if (!frag.childNodes.length) {
+        const empty = document.createElement("div");
+        empty.className = "psel-empty";
+        empty.textContent = "No presets available. The preset table could not be read.";
+        list.appendChild(empty);
+    } else list.appendChild(frag);
+    list.scrollTop = top;
+}
+function openPresetSheet() {
+    renderPresetSheet();
+    const sheet = $("presetSheet");
+    sheet.classList.add("show");
+    sheet.setAttribute("aria-hidden", "false");
+    $("profilePresetBtn").setAttribute("aria-expanded", "true");
+    const sel = $("pselList").querySelector(".psel-row.selected");
+    if (sel) { sel.scrollIntoView({ block: "center" }); sel.focus({ preventScroll: true }); }
+    else $("presetSheet").querySelector(".psel-sheet").focus({ preventScroll: true });
+}
+function closePresetSheet() {
+    if (!presetSheetOpen()) return;
+    const sheet = $("presetSheet");
+    sheet.classList.remove("show");
+    sheet.setAttribute("aria-hidden", "true");
+    $("profilePresetBtn").setAttribute("aria-expanded", "false");
+    $("profilePresetBtn").focus({ preventScroll: true });
+}
+function setupPresetSheet() {
+    const sheet = $("presetSheet");
+    $("profilePresetBtn").addEventListener("click", openPresetSheet);
+    $("pselClose").addEventListener("click", closePresetSheet);
+    sheet.addEventListener("click", (e) => { if (e.target === sheet) closePresetSheet(); });
+    $("pselList").addEventListener("click", (e) => {
+        const row = e.target.closest(".psel-row");
+        if (!row || !ID_RE.test(row.dataset.id) || !findPreset(row.dataset.id)) return;
+        setProfilePreset(row.dataset.id);
+        closePresetSheet();
+    });
+    document.addEventListener("keydown", (e) => {
+        if (!presetSheetOpen()) return;
+        if (e.key === "Escape") { e.preventDefault(); closePresetSheet(); return; }
+        if (e.key !== "Tab") return;
+        const f = Array.from(sheet.querySelectorAll("button")).filter((b) => !b.disabled);
+        if (!f.length) return;
+        const first = f[0], last = f[f.length - 1];
+        if (e.shiftKey && (document.activeElement === first || document.activeElement === sheet.querySelector(".psel-sheet"))) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    });
 }
 function profileInEffect(p) {
     if (!isEnabled() || p.status !== "ok") return false;
@@ -469,6 +660,7 @@ function resetProfileForm() {
     $("profilePkg").value = "";
     $("profilePkg").readOnly = false;
     $("profileKind").value = "preset";
+    setProfilePreset("");
     $("profileSat").value = "1.00";
     $("profileFormTitle").textContent = "New profile";
     $("profileCancel").classList.add("hidden");
@@ -479,7 +671,7 @@ function editProfile(p) {
     $("profilePkg").value = p.pkg;
     $("profilePkg").readOnly = true;
     $("profileKind").value = p.kind;
-    if (p.kind === "preset") $("profilePreset").value = p.value; else $("profileSat").value = fmt(p.value);
+    if (p.kind === "preset") setProfilePreset(p.value); else $("profileSat").value = fmt(p.value);
     $("profileFormTitle").textContent = "Edit profile";
     $("profileCancel").classList.remove("hidden");
     syncProfileKind();
@@ -539,8 +731,17 @@ let diagGeneration = 0;
 async function refreshDiagnosticText() {
     const gen = ++diagGeneration;
     const r = await generateDiagnostic();
-    if (gen !== diagGeneration || document.activeElement === $("diagText")) return;
+    if (gen !== diagGeneration) return;
+    if (document.activeElement === $("diagText") || !r.ok) App.diagStale = true; // retry on the next visit
+    if (document.activeElement === $("diagText")) return;
     $("diagText").value = r.ok ? r.text : `Could not generate the diagnostic log:\n${r.error}`;
+}
+// diagnostic.sh re-runs status.sh and probes logcat, so it is generated only
+// when the Controls tab is showing AND something changed since the last run.
+function syncDiagnostic() {
+    if (App.activeTab !== "controls" || !App.readOk || !App.diagStale) return;
+    App.diagStale = false;
+    refreshDiagnosticText();
 }
 async function copyText(text) {
     if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
@@ -616,7 +817,8 @@ function renderAuto() {
     else if (ok && s.last_apply_result === "skipped") be = "No change needed";
     else if (ok && s.last_apply_result === "failed") be = `FAIL: ${s.last_apply_reason || "unknown reason"}`;
     $("applyResult").textContent = !ok ? "-" : be;
-    $("autoToggle").textContent = on ? "Turn auto switching off" : "Turn auto switching on";
+    $("autoToggle").textContent = !ok ? "Auto switching: -" : `Auto switching: ${on ? "ON" : "OFF"}`;
+    $("autoToggle").setAttribute("aria-pressed", on ? "true" : "false");
 }
 async function toggleAuto() {
     const on = App.readOk && App.status.autoswitch === "1";
@@ -629,10 +831,13 @@ function renderAll() {
     renderPresets();
     renderCustom();
     renderTweaks();
+    renderRefresh();
+    loadControlsLazy();
     renderDiagnostics();
     renderProfiles();
     renderAuto();
-    if (App.activeTab === "controls") refreshDiagnosticText();
+    syncDiagnostic();
+    if (presetSheetOpen()) renderPresetSheet();
     renderErrorSlots();
 }
 
@@ -643,8 +848,10 @@ function switchTab(tab) {
     const changed = App.activeTab !== tab;
     App.activeTab = tab;
     document.querySelectorAll(".tab-content").forEach((el) => el.classList.toggle("active", el.id === `tab-${tab}`));
-    if (changed) { const act = $(`tab-${tab}`); act.scrollTop = 0; window.scrollTo(0, 0); }
-    if (changed && tab === "controls" && App.readOk) refreshDiagnosticText();
+    // Keep each tab's own scroll position. Avoid forced window scrolling on
+    // every switch; it caused a visible jump on mobile WebView.
+    if (changed) syncDiagnostic();
+    if (changed) loadControlsLazy();
     document.querySelectorAll(".knav-item").forEach((el) => {
         el.classList.toggle("active", el.dataset.tab === tab);
         el.setAttribute("aria-current", el.dataset.tab === tab ? "page" : "false");
@@ -707,8 +914,9 @@ function confirmNo() { $("confirm-overlay").classList.remove("show"); confirmFn 
 
 // ── backend sync ──
 function setBusy(busy) {
+    document.body.dataset.busy = busy ? "1" : "0";
     document.querySelectorAll("button, input[type=range], input[type=number], select").forEach((b) => (b.disabled = busy));
-    if (!busy) renderProfilesButtons();
+    if (!busy) { renderProfilesButtons(); renderRefresh(); }
 }
 
 // after a busy period, re-disable Apply on broken profiles
@@ -720,10 +928,13 @@ function renderProfilesButtons() {
     });
 }
 let readGeneration = 0; // only the newest read may update the UI
+let lastRefreshAt = 0;
 async function refreshFromBackend() {
     const gen = ++readGeneration;
+    lastRefreshAt = Date.now();
     const res = await executeCommand(`sh ${MODDIR}/status.sh 2>&1`);
     if (gen !== readGeneration) return;
+    if (res.stdout !== App.statusRaw) { App.statusRaw = res.stdout; App.diagStale = true; }
     let parsed = null;
     if (res.errno === 0) parsed = parseStatus(res.stdout);
     if (!parsed || parsed.state_read !== "1") {
@@ -739,6 +950,18 @@ async function refreshFromBackend() {
         App.readError = "";
         if (parsed.presets.length) App.presets = parsed.presets;
         if (App.error && App.error.onRetry === refreshFromBackend) App.error = null;
+        // Auto switching is ON and every precondition holds, yet the listener is
+        // not running (e.g. it died or was killed after boot). The UI would say
+        // "On" while nothing switches. Ask the backend's own sync to start it,
+        // once per episode, then re-read the real state.
+        const stranded = parsed.autoswitch === "1" && parsed.watcher_supported === "1" && parsed.watcher === "stopped" && parsed.watcher_reason === "not_started";
+        if (stranded && !App.healTried) {
+            App.healTried = true;
+            await executeCommand(`sh ${MODDIR}/watcher.sh sync`);
+            if (gen === readGeneration) await refreshFromBackend();
+            return;
+        }
+        if (!stranded) App.healTried = false;
     }
     renderAll();
 }
@@ -748,6 +971,7 @@ async function runAction(cmd, successMessage) {
     App.error = null;
     setBusy(true);
     const res = await executeCommand(cmd);
+    App.diagStale = true; // error history / listener probe may have changed
     await refreshFromBackend();
     setBusy(false);
     const success = res.errno === 0 && /^OK\b/.test(res.stdout.trim());
@@ -789,6 +1013,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     switchTab("home");
     setupNavSwipe();
     setupPreviewInteraction();
+    setupPresetSheet();
+    $("refreshToggle").addEventListener("click", toggleRefresh);
+    $("cacheClearButton").addEventListener("click", () => confirmDialog("Clear cache", "Removes only temporary module files. Presets, the active value, per-app profiles and backups are kept.", clearCache));
 
     $("qaOff").addEventListener("click", moduleOff);
     $("qaReset").addEventListener("click", doReset);
@@ -818,8 +1045,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // Re-sync when the WebUI regains focus (state may have changed via boot
     // script, another action surface, or the root manager).
-    document.addEventListener("visibilitychange", () => { if (!document.hidden) refreshFromBackend(); });
-    window.addEventListener("focus", () => refreshFromBackend());
+    // focus and visibilitychange usually fire together: one read is enough.
+    const refreshIfIdle = () => { if (Date.now() - lastRefreshAt > 500) refreshFromBackend(); };
+    document.addEventListener("visibilitychange", () => { if (!document.hidden) refreshIfIdle(); });
+    window.addEventListener("focus", refreshIfIdle);
 
     await refreshFromBackend();
 });

@@ -16,7 +16,7 @@
       <div class="page-title">Ayunda Rusdi</div>
       <button class="status-pill" id="statusPill" type="button" aria-label="Go to Diagnostics">
         <span class="dot" id="statusDot"></span>
-        <span id="statusPillText">-</span>
+        <span id="statusPillText">Reading state...</span>
       </button>
     </div>
 
@@ -72,9 +72,9 @@
         <button class="preview-scene-btn" id="sceneBtn2" type="button">Scene 3</button>
       </div>
       <div class="preview-compare" id="previewCompare">
-        <img id="previewImgBefore" class="preview-img" alt="Before">
+        <img id="previewImgBefore" class="preview-img" alt="Before" decoding="async">
         <div class="preview-after-wrap" id="previewAfterWrap">
-          <img id="previewImgAfter" class="preview-img" alt="After">
+          <img id="previewImgAfter" class="preview-img" alt="After" decoding="async">
         </div>
         <div class="preview-divider" id="previewDivider"><span class="preview-handle">&#8596;</span></div>
         <span class="preview-tag preview-tag-before">Before</span>
@@ -164,7 +164,7 @@
       <div class="status-row"><span class="k">Active value</span><span class="v" id="overrideVal">-</span></div>
       <div class="status-row"><span class="k">Backend</span><span class="v" id="applyResult">-</span></div>
     </div>
-    <div class="slider-actions auto-actions"><button class="cm-btn-secondary" id="autoToggle" type="button">Turn auto switching off</button></div>
+    <div class="slider-actions auto-actions"><button class="cm-btn-secondary" id="autoToggle" type="button" aria-pressed="false">Auto switching: -</button></div>
     <div class="hint-card" id="profileEmpty">No profiles yet. Add one below.</div>
     <div class="profile-list" id="profileList"></div>
     <div class="slider-card" id="profileForm">
@@ -173,7 +173,12 @@
         <input id="profilePkg" type="text" autocapitalize="none" autocomplete="off" autocorrect="off" spellcheck="false" maxlength="200" placeholder="com.example.app"></label>
       <label class="fld"><span>Applies</span>
         <select id="profileKind"><option value="preset">A preset</option><option value="sat">A saturation value</option></select></label>
-      <label class="fld" id="profilePresetWrap"><span>Preset</span><select id="profilePreset"></select></label>
+      <div class="fld" id="profilePresetWrap"><span id="profilePresetLabel">Preset</span>
+        <input type="hidden" id="profilePreset" value="">
+        <button type="button" class="psel-trigger" id="profilePresetBtn" aria-haspopup="dialog" aria-expanded="false" aria-labelledby="profilePresetLabel profilePresetBtnText">
+          <span class="psel-trigger-text" id="profilePresetBtnText">Choose a preset</span>
+          <svg class="psel-chev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+        </button></div>
       <label class="fld hidden" id="profileSatWrap"><span>Saturation (0.00-2.50)</span>
         <input id="profileSat" type="number" step="0.01" min="0" max="2.5" inputmode="decimal" value="1.00"></label>
       <div class="slider-actions">
@@ -183,7 +188,32 @@
       <p class="slider-note">When an app with a profile comes to the foreground its saturation is applied; when you leave it, your saved setting is restored. <b>Apply</b> sets a profile as your current setting right now. Automatic switching reads Android's event log. If “Last app seen” stays empty after you switch apps, this ROM is not providing that event and automatic switching cannot work here.</p>
     </div>
 
-    <div class="sec"><span class="n">04</span><span class="t">Diagnostics</span><span class="rule"></span></div>
+    <div class="sec"><span class="n">04</span><span class="t">Display</span><span class="rule"></span></div>
+    <div id="refreshUnsupported" class="hint-card hidden"></div>
+    <div class="slider-card" id="refreshCard">
+      <div class="head">
+        <span class="name">Force Peak Refresh Rate</span>
+        <span class="readout" id="refreshReadout">-</span>
+      </div>
+      <p class="slider-note">Asks Android to run the display at its highest supported rate (peak and minimum refresh-rate settings). Your previous settings are backed up and restored when you turn it off. Some ROMs ignore the request, so the active mode is read back separately.</p>
+      <div class="status-card tweak-rows">
+        <div class="status-row"><span class="k">Highest supported</span><span class="v" id="rfMax">-</span></div>
+        <div class="status-row"><span class="k">Active mode (last check)</span><span class="v" id="rfCurrent">-</span></div>
+        <div class="status-row"><span class="k">Setting</span><span class="v" id="rfSetting">-</span></div>
+      </div>
+      <div class="slider-actions"><button class="cm-btn-solid" id="refreshToggle" type="button" aria-pressed="false" disabled>Force Peak Refresh Rate: -</button></div>
+    </div>
+
+    <div class="sec"><span class="n">05</span><span class="t">Maintenance</span><span class="rule"></span></div>
+    <div class="slider-card" id="cacheCard">
+      <div class="head"><span class="name">Clear Cache</span></div>
+      <p class="slider-note">Removes only temporary files this module leaves behind (orphaned write temps, a stale listener lock, the listener's runtime snapshot while it is stopped). Presets, the active value, per-app profiles, backups and the error history are kept.</p>
+      <p class="slider-note" id="cacheInfo">Checking what can be cleared...</p>
+      <p class="share-status" id="cacheStatus" role="status" aria-live="polite"></p>
+      <div class="slider-actions"><button class="cm-btn-solid" id="cacheClearButton" type="button">Clear Cache</button></div>
+    </div>
+
+    <div class="sec"><span class="n">06</span><span class="t">Diagnostics</span><span class="rule"></span></div>
     <div class="status-card">
       <div class="status-row"><span class="k">Version</span><span class="v" id="statVersion">-</span></div>
       <div class="status-row"><span class="k">State</span><span class="v" id="statState">-</span></div>
@@ -273,6 +303,16 @@
   </div>
 
   <!-- ════════════════ CONFIRM DIALOG (Reset only) ════════════════ -->
+  <div id="presetSheet" class="psel-overlay" aria-hidden="true">
+    <div class="psel-sheet" role="dialog" aria-modal="true" aria-labelledby="pselTitle" tabindex="-1">
+      <div class="psel-head">
+        <h3 id="pselTitle">Select preset</h3>
+        <button type="button" class="psel-close" id="pselClose" aria-label="Close preset selector">&times;</button>
+      </div>
+      <div class="psel-list" id="pselList" role="radiogroup" aria-labelledby="pselTitle"></div>
+    </div>
+  </div>
+
   <div id="confirm-overlay">
     <div class="confirm-sheet">
       <h3 id="confirm-title">Reset</h3>
