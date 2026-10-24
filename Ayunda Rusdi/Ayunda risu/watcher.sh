@@ -26,7 +26,20 @@ MAX_RESTARTS=5
 
 auto_enabled() { [ "$(cat "$AUTOF" 2>/dev/null)" != "0" ]; }
 supported() { command -v setsid >/dev/null 2>&1 && command -v logcat >/dev/null 2>&1; }
-profile_count() { _c=$(sh "$DIR/profile.sh" list 2>/dev/null | grep -c '^profile=.*|ok|'); echo "${_c:-0}"; }
+# Count syntactically valid profile rows directly. Do not call `profile.sh list`
+# here: that performs a full `pm list packages` query. status.sh already calls
+# profile.sh list, so repeating it here made every WebUI refresh slower.
+profile_count() {
+    awk -F'|' '
+        NF == 3 &&
+        $1 ~ /^[A-Za-z][A-Za-z0-9_]*(\.[A-Za-z][A-Za-z0-9_]*)+$/ &&
+        (($2 == "preset" && $3 ~ /^[a-z0-9_]+$/) ||
+         ($2 == "sat" && $3 ~ /^[0-9]+([.][0-9]+)?$/ && $3+0 >= 0 && $3+0 <= 2.50)) {
+            n++
+        }
+        END { print n+0 }
+    ' "$STATEDIR/profiles.conf" 2>/dev/null
+}
 module_enabled() { read_state && validate_state && [ "$MODULE_STATE" = "enabled" ]; }
 
 is_watcher_pid() {
@@ -129,13 +142,63 @@ cmd_event() {
     return 0
 }
 
+# Extract the package from Android's formatted wm_set_resumed_activity
+# event. Validate the result because event payload formats vary by ROM.
+event_package() {
+    case "$1" in *"$EVENT_TAG"*) ;; *) return 1 ;; esac
+    _payload=${1#*"$EVENT_TAG"}
+    case "$_payload" in *"["*) _payload=${_payload#*\[} ;; *) return 1 ;; esac
+    case "$_payload" in *,*) _payload=${_payload#*,} ;; *) return 1 ;; esac
+    _component=${_payload%%,*}
+    _component=$(printf '%s' "$_component" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//; s/].*$//')
+    _pkg=${_component%%/*}
+    is_valid_package "$_pkg" || return 1
+    printf '%s\n' "$_pkg"
+}
+
+# Read the currently resumed app once when the listener starts. This handles
+# enabling auto switching while already inside an app (no new event required).
+foreground_package() {
+    _line=$(dumpsys activity activities 2>/dev/null |
+        awk '
+            /mResumedActivity|topResumedActivity|ResumedActivity/ {
+                for (i=1; i<=NF; i++) {
+                    t=$i
+                    gsub(/^[{(]+/, "", t)
+                    gsub(/[}),]+$/, "", t)
+                    if (t ~ /^[A-Za-z][A-Za-z0-9_.]*\/[^[:space:]]+$/) {
+                        print t
+                        exit
+                    }
+                }
+            }')
+    # Some vendor builds expose the resumed component only in `activity top`.
+    if [ -z "$_line" ]; then
+        _line=$(dumpsys activity top 2>/dev/null |
+            awk '
+                /ACTIVITY|mResumedActivity|topResumedActivity|ResumedActivity/ {
+                    for (i=1; i<=NF; i++) {
+                        t=$i
+                        gsub(/^[{(]+/, "", t)
+                        gsub(/[}),]+$/, "", t)
+                        if (t ~ /^[A-Za-z][A-Za-z0-9_.]*\/[^[:space:]]+$/) {
+                            print t
+                            exit
+                        }
+                    }
+                }')
+    fi
+    _pkg=${_line%%/*}
+    is_valid_package "$_pkg" || return 1
+    printf '%s\n' "$_pkg"
+}
+
 cmd_loop() {
     _last=""
+    read_run && _last="$RUN_LAST_APP"
     while IFS= read -r _line; do
-        case "$_line" in *"$EVENT_TAG"*"["*) ;; *) continue ;; esac
-        _rest=${_line#*\[}; _rest=${_rest#*,}; _pkg=${_rest%%/*}
-        is_valid_package "$_pkg" || continue
-        [ "$_pkg" = "$_last" ] && continue          # unchanged package: nothing to do
+        _pkg=$(event_package "$_line") || continue
+        [ "$_pkg" = "$_last" ] && continue
         _last="$_pkg"
         sh "$DIR/watcher.sh" event "$_pkg" >/dev/null 2>&1
     done
@@ -154,6 +217,11 @@ cmd_run() {
     trap 'rm -rf "$WLOCK"; exit 0' TERM INT HUP EXIT
     echo "$$" > "$WLOCK/pid.tmp" && mv -f "$WLOCK/pid.tmp" "$WLOCK/pid" || exit 1
     clear_override
+    # Apply the profile for the app already in the foreground, if any.
+    _initial_pkg=$(foreground_package)
+    if is_valid_package "$_initial_pkg"; then
+        sh "$DIR/watcher.sh" event "$_initial_pkg" >/dev/null 2>&1
+    fi
     _n=0
     while [ "$_n" -lt "$MAX_RESTARTS" ]; do    # bounded restarts, never an endless loop
         logcat -b events -T 1 -v brief "$EVENT_TAG:I" '*:S' 2>/dev/null | cmd_loop
